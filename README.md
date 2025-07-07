@@ -41,7 +41,6 @@ Feel free to connect with me for collaborations, freelance projects, or data-dri
 - Email: [onywogo2017@gmail.com](mailto:onywogo2017@gmail.com)  
 - LinkedIn: [www.linkedin.com/in/felix-onywogo-235676257](www.linkedin.com/in/felix-onywogo-235676257)
 - Nairobi, Kenya  
-
 ---
 
 > “Without data, you're just another person with an opinion.” – W. Edwards Deming
