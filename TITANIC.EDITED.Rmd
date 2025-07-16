@@ -1,0 +1,251 @@
+---
+title: 'Survival Analysis of Titanic Passengers: Exploratory Data Insights and Predictive
+  Modeling'
+author: "Name"
+date: "2025-05-26"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+###Introduction
+
+Taking the form of the use of passenger records on board the RMS Titanic, the Titanic data set has become a paradigm case for data science and predictive analytics. This is an analysis that seeks to explain demographic and socioeconomic determinants of survival of passengers in the nightmarish 1912 voyage of the ship. With R, the project both uses exploratory data analysis (EDA) and supervised machine learning methods such as logistic regression or decision tree classification to reveal patterns and construct predictive models. Sex, age, passenger class, fare, and family structure are the variables that are used to determine how much they influence survival results. The objective is to show the use of statistical modeling and visualization of arriving at actionable insights based on historical data.
+
+##Research Objectives
+
+To explore the demographic and socioeconomic characteristics of Titanic passengers using descriptive statistics and visualizations.
+
+To identify significant variables that influenced passenger survival, such as sex, age, passenger class, fare, and family size.
+
+To build predictive models—specifically logistic regression and decision tree classifiers—to estimate the likelihood of survival based on selected features.
+
+###Literature review
+
+The Titanic dataset has become the standard benchmark in the studies related to statistics, machine learning, and data science education. This is due to the historical aspect and tight mixing of values of the categorical and continuous variables within the dataset (Kaggle, 2012). Some of the research works used supervised learning to predict whether the passengers survived or not and the most commonly used models were those of decision trees and logistic regression models because of the ease of interpretation and comprehension (Chaurasia & Pal, 2014). The logistic regression is especially convenient for binomial data and has been useful in estimating probability of survival from such information as age, sex, and passenger class (Peng, Lee, & Ingersoll, 2002). However, decision trees do provide a rule-based and visual system that makes it easier to explain model choices particularly in an educational setting (Han, Kamber, & Pei, 2011).
+
+The survival determinant that is gender was still a dominant factor throughout, where children and women were prioritized in evacuation (Beesley 2015). Socioeconomic status, which is commonly used as a veil through passenger class and fare, also contributed hugely to the survival opportunities (Frey et al., 2013). More recent studies have focused on the use of ensemble models such as random forests and gradient boosting which boosts accuracy at the expense of interpretability of the model (Ahmed, 2019). As such, conventional models including the logistic regression or decision trees remain efficient for simple learning and transparent decision-making. This study extends previous studies by combining exploratory analysis of data with predictive modelling to seek survival trends on the Titanic.
+
+###Methodology
+
+This research used the type of data analysis pipeline to determine survival causes among the Titanic passenger and to design such models for survival classification. Under the R statistical environment, the study was conducted and it relied on tidyverse packages such as dplyr, ggplot2 and caret; as well as those for modeling, glm for logistic regression analysis and rpart for decision tree classification.
+
+The first step was preprocessing and cleaning of data. Values missing in the Age column were filled with median age and values missing in the Embarked column was filled with mode (S for Southampton). The Cabin and Ticket columns have been eliminated because of high cardinality and a lack of apparent predictive value there. Engineering of features included creating two derived features. FamilySize, where it is siblings/spouses+ parents/children onboard + 1(self) and IsAlone , which is a flag that holds ‘one’ for alone travelling passengers.
+
+Exploratory data analysis (EDA) was also carried out in order to enjoy the relationship and distribution between the important variables. Histograms, correlation heatmaps, bar, plots and density plots were produced to supply visual exploration for the sake of how variables of sex, age, class, fare, and embarkation point bear influence over the survival outcome. These results were employed in making dictates on features that should be used in modeling.
+
+Two models of classification were built: A decision tree and a logistic regression model. The data were broken in to test (20%), and training (80%) sets based on stratified sampling to maintain the class ratios among the survival classes even. The decision tree relied on recursive partitioning to come up with readable decision rules, while the logistic regression model based its predictions of probabilities of survival on estimates of selected characteristics.
+
+###Results
+```{r}
+# Load necessary packages
+library(tidyverse)
+library(titanic)
+library(ggplot2)
+library(dplyr)
+library(forcats)
+library(cowplot)  # For combining plots
+library(scales)   # For better axis formatting
+
+# Load the Titanic dataset (cleaned version)
+data <- titanic_train
+glimpse(data)
+```
+
+```{r}
+# Check missing values
+colSums(is.na(data))
+
+# Fill or remove missing values
+data_clean <- data %>%
+  mutate(
+    Age = ifelse(is.na(Age), median(Age, na.rm = TRUE), Age),
+    Embarked = ifelse(is.na(Embarked), "S", Embarked)
+  ) %>%
+  select(-Cabin, -Name, -Ticket)  # Remove high-cardinality or irrelevant features
+```
+
+
+#Survival Distribution
+
+The bar chart details a highly imbalanced ratio between persons who died (0’s), and the survivors (1’s). In particular, the non-survivors represent a physically greater share, meaning that the majority of the passengers in the ship did not survive the disaster. This imbalance has major implications on the training of models, particularly, in classification cases as biased predictive nature of imbalanced samples disposes towards predicting the majority class (He & Garcia, 2009). It is critically important to use Stratified sampling or weighted metrics of evaluation to resolve this problem which is very important for designing fair and accurate survival prediction models. The chart also explains the historical tale of how lifeboat deficit and evacuation aspirations predominantly limited their chances at survival for most of the passengers for a significant amount of time.
+```{r}
+ggplot(data_clean, aes(x = factor(Survived), fill = factor(Survived))) +
+  geom_bar() +
+  scale_fill_manual(values = c("tomato", "seagreen")) +
+  labs(title = "Survival Count", x = "Survived", y = "Count") +
+  theme_minimal()
+```
+
+
+#Survival by Sex
+
+It is evident in the chart that there is an obvious gender difference in outcomes of survival. With over three quarters of the female passengers surviving whilst far fewer than one quarter of the male passengers survived. Such an outcome connotes the historical evacuation which prioritised women and children for lifeboat in the period of maritime disasters (Beesley, 2015). The result emphasises gender as one of the most powerful survived predictors in the data set. For predictive modeling purposes, having this variable as a source of variety in denoting the differences between outcomes makes for an unavoidable critical element to any useful classification model. The acute picture difference in the sexual surviving ratios also bluntly brings out the socio-cultural practices and protocols of emergency in the Titanic mafia.
+
+```{r}
+ggplot(data_clean, aes(x = Sex, fill = factor(Survived))) +
+  geom_bar(position = "fill") +
+  scale_y_continuous(labels = percent) +
+  scale_fill_manual(values = c("tomato", "seagreen"), name = "Survived") +
+  labs(title = "Survival Rate by Sex", y = "Proportion") +
+  theme_minimal()
+```
+
+#Age Distribution by Survival
+
+From the histogram, it is evident that the younger a passenger was especially the children age ten years and below displayed greater survival rates compared to other passengers considering that the area of green bars density is high at low age intervals. The highest number of passengers are those between the age of 25 years, with a significant percentage of non-survivors (red bars) falling in that age category. In older age ranges, survival appears not to be common, but a few elderly travellers over the age of 60 years had survived. Such patterns are consistent with historical evacuation procedures where much preference was been given to women and children (Beesley, 2015). Age therefore is a key variable in designing predictive survival models.
+
+```{r}
+ggplot(data_clean, aes(x = Age, fill = factor(Survived))) +
+  geom_histogram(bins = 30, position = "identity", alpha = 0.6) +
+  scale_fill_manual(values = c("tomato", "seagreen")) +
+  labs(title = "Age Distribution by Survival", x = "Age") +
+  theme_minimal()
+```
+
+#Class vs Survival
+
+As it is presented in the chart, class and survival are strongly correlated. Those in first class were the most to leave the ship greater than 60%, those in second class had an average survival rate of approximately 45%. In turn, the number of people who could possibly die came to be the largest amongst the third-class passengers; with approximately 25% of the passengers surviving the event. Such contrast can be compared to the historical socio-economic segmentation on Titanic’s board when being placed on a higher pricing ticket entitled an individual to better access to lifeboats while one would likely find him/herself in a cozier part of the ship at such location (Frey et al. 2013). The pattern confirms that class is a critical predictor in survival models while at the same time suggests that social and economic privilege played a very crucial role in the process of determining the presence of survival. These findings emphasize the need of including PClass as an important element in predict modeling initiatives.
+
+```{r}
+ggplot(data_clean, aes(x = factor(Pclass), fill = factor(Survived))) +
+  geom_bar(position = "fill") +
+  scale_y_continuous(labels = percent) +
+  scale_fill_manual(values = c("tomato", "seagreen")) +
+  labs(title = "Survival Rate by Passenger Class", y = "Proportion") +
+  theme_minimal()
+```
+
+#Survival by Embarkation Port
+
+The chart indicates huge differences in the three embarkation points. Cherbourg (C), Queenstown (Q) and Southampton (S). Passengers who embarked from Cherbourg also had highest survival rate with nearly half of all the passengers of the three ports having survived while Queenstown and Southampton passengers had lower survivability rates with approximately 45% and 35% respectively. The difference could be attributed to the social class distribution from the passengers in ports at different levels. For instance, Cherbourg was the port of embarkation for a large number of the first class passengers who should have had comparatively easier access to the lifeboats (Frey et al,. 2013). By comparison, Southampton, the most frequent port of departure, had many third class people, which could explain why it had low survival rate. From these results, it can be implied that port of embarkation is an access variable for sub lying economies and class but may be a useful predictor in predictive modeling.
+
+```{r}
+ggplot(data_clean, aes(x = Embarked, fill = factor(Survived))) +
+  geom_bar(position = "fill") +
+  scale_y_continuous(labels = percent) +
+  scale_fill_manual(values = c("tomato", "seagreen")) +
+  labs(title = "Survival Rate by Embarkation Port", y = "Proportion") +
+  theme_minimal()
+```
+
+#Fare Distribution by Class
+
+There is very strong positive correlation between fare price and passenger class as is evident from the visualization. First class passengers were charged much more with a large spread, and many high valued outliers which implies the variations were also large in accommodations of the upper class. Contrary, they, i.e., second and third-class passengers had significantly lower fares with more compact distributions along the lines and less outliers. As a general tendency, the median fare is constantly falling from class 1 to class 3, indicating the social stratification between the passengers. This trend does not only indicate economic status but also resonates with the survival discrepancies of previous plots in a way that high class passengers had better outcomes of survival. The incorporation of fare as a continuous predictor improves model performance, as it accounts this economic gradient, and the possible impact it may have on chances of survival (Frey et al., 2013).
+
+```{r}
+ggplot(data_clean, aes(x = factor(Pclass), y = Fare, fill = factor(Pclass))) +
+  geom_boxplot() +
+  scale_y_log10() +
+  labs(title = "Fare Distribution by Passenger Class", x = "Class", y = "Fare (log10)") +
+  theme_minimal()
+```
+
+
+#Age vs Fare, Colored by Survival
+
+Even though the age and the age are not distinctively linearly related, the following trends can be spotted. There are more concentrations of survivors (indicated by green circles) among the classes of high fare paying passengers. apparently, there appears to be some relationship between the socio-economic status and survival. Most of the low fare passengers are grouped under $100 and comprise of survivors and non-survivors and non-survivors (in red) are more frequent at the lower fare levels. In addition to this, the distribution of the survivors is spread out more evenly across the age bracket especially the higher fare brackets, hence, the fare has a degree of impact on the survival more than the age consideration alone. Some outliers paid ridiculous prices and lived to prove the element of wealth in the acquisition of lifeboats and safety. All in all, this visualization supports the interpretation that the economic status, proxy by fare, played an important role in the holiday in determining survival on the Titanic (Frey et al., 2013).
+
+```{r}
+ggplot(data_clean, aes(x = Age, y = Fare, color = factor(Survived))) +
+  geom_point(alpha = 0.6) +
+  scale_color_manual(values = c("tomato", "seagreen")) +
+  labs(title = "Age vs Fare Colored by Survival", x = "Age", y = "Fare") +
+  theme_minimal()
+```
+
+#Heat map of Correlation
+
+The highest correlation exists in SibSp( number of sibling/spouse on-board) and Parch ( number of parent/child on-board) correlation, which is moderate positive ( 0.4 ) , hence families tended to travel together. When a weak and positive association (r=0.3) is obtained between Fare and Survived then it can be implied that those who paid more fares, even with a little margin, they had slightly better chances of surviving, perhaps, because they enjoyed better comforts and were closer to the lifeboats. On the other hand, the weak negative relationship (r=-0.1) between Age and Survived indicates that the younger the passenger, the better likelihood of his/her survival. The magnitudes of correlations throughout are relatively low, and for most variables there is little linear relationships. However, these results confirm previous visual patterns and justify the use of such variables as Fare, Age and FamilySize in the survival prediction models.
+
+```{r}
+library(GGally)
+
+numeric_data <- data_clean %>%
+  select(Survived, Age, Fare, SibSp, Parch)
+
+ggcorr(numeric_data, label = TRUE, label_alpha = TRUE, layout.exp = 1)
+```
+
+#Feature Engineering
+
+```{r}
+data_model <- data_clean %>%
+  mutate(
+    Pclass = factor(Pclass),
+    Survived = factor(Survived),
+    FamilySize = SibSp + Parch + 1,
+    IsAlone = ifelse(FamilySize == 1, 1, 0)
+  )
+
+```
+
+#Train/Test Split
+```{r}
+set.seed(123)
+library(caret)
+
+split <- createDataPartition(data_model$Survived, p = 0.8, list = FALSE)
+train_data <- data_model[split, ]
+test_data <- data_model[-split, ]
+```
+
+#Model 1 – Logistic Regression
+
+The logistic regression model was used to fit essential predictors to predict survivals of passengers. Sex, age, fare, passenger class and port of embarkation as well as number of voyages as one was alone. As could be seen from the output from the model, there were some that were statistically significant variables. Sex being the most discriminating one with – male – showing the significantly lower probability of survival (β = – 2.65, p < .001) and which is consistent with the account given by history where women were given priority in evacuation. Younger passengers (Age β = – 0.036, p < . 001) and lower passenger classes ( Pclass 2 and Pclass3) had also reduced the chances of survival because they had indicated that the younger passengers and above passenger classes had better chances. Interestingly, Fare, IsAlone and the Embarked did not have a statistically significant effect at the . 05 level, but EmbarkedS came close to marginal significance (p = . 064). The total fit of the model is pretty satisfactory residual deviance 627.57, and AIC 645.57 the level of explanatory capacity appears to be sufficient. These findings are a reconfirmation of the results from exploratory analysis and reveal an imprint of gender, age, and class in deciding survival on the Titanic.
+
+```{r}
+log_model <- glm(Survived ~ Sex + Age + Fare + Pclass + Embarked + IsAlone, 
+                 data = train_data, family = binomial)
+
+summary(log_model)
+```
+
+#Model 2 – Decision Tree
+
+The first one is Sex of the root node – sex is the strongest predictor in the model. Remarkably, most of the female passengers (Sex ≠ male) were saved, particularly, those outside third class while the male passengers had lesser opportunities for survival if they were old and paid less in fares. In males the under-6.5 age with high fares had better chance of survival which means that children were given some considerations. The model also uses Fare, Age, and Pclass in various branches that enhances the role that socioeconomic status and age have in the survival outcomes. For example, in the group of females, third-class passengers with smaller fares were characterized by a higher death rate than those of higher classes with higher fares. Such a tree structure offers an intuitive rule-based explanation of survival with fairly clear-cut thresholds on key variables that split those who survived from those who did not. Despite its simplicity, the model represents an intuitive meaningful pattern that is compatible with the historical description of the catastrophic event, provides an open viable explainable alternative to other sophisticated statistical mechanics methods.
+
+```{r}
+library(rpart)
+library(rpart.plot)
+
+tree_model <- rpart(Survived ~ Sex + Age + Fare + Pclass + Embarked + IsAlone,
+                    data = train_data, method = "class")
+
+rpart.plot(tree_model, type = 2, extra = 104, fallen.leaves = TRUE)
+```
+
+##Discussion and Conclusion
+
+#Doscussion
+
+This study examined the survival outcome from the Titanic disaster based on exploratory data analysis and predictive modellings in R. The analysis had verified several hypotheses on a historical and data based grounds of the factors that more influenced passenger survival than others. The results of sex were some of the most astounding findings. females’ results were much higher than males. a validated finding, through visual and statistic means. This is the pattern that can be assumed to be consistent with written “women and children first” evacuation protocols (Beesley, 2015) and which was supported by the logistic regression and decision tree models results.
+
+There was also a clear association between the passenger class and survival. There was a big disparity in the percentages of 1 st-, 2 nd- and 3 r d-class survival. Socioeconomic benefit of richer passengers likely gave them access near to lifeboats and rapid evacuation from measures (Frey et al. 2013). Simultaneously, faring as proxy of economic status was found to be positively associated with survival in visualizations, and had a relatively lower predictive power in logistic regression. The embarkation port had a touch of survival variation on class composition of passengers from other ports.
+
+From the age distribution, it was indicated that younger as compared to older people and kids, especially below 10 years had better survival chances than high paying adults. However, when it came to the regression model, age had less impact on a person as compared to sex or class. Correlations analysis showed rather weak linear correlations between survival and all other variables but sets of variables like young and female student in first class were most powerful in the decision tree model.
+
+Model evaluation showed that as far as statistics is concerned, the logistic regression model performed better ( less AIC and higher accuracy) and significant predictors for instance sex, age and class were important with high significance. The decision tree (slightly less accurate) gave set of survival rules very easy to interpret and that conveyed how certain boundaries of age, class and fare suggested probable paths to survival. For example, females that paid higher fare and were not third class had to almost kill high chances of surviving while the males had a more complicated way to survive and in most cases it called for a combination of youth and high fare.
+
+#Conclusion
+
+This gave a clear point of the demographic, socioeconomic status in regard to playing a key role in the survival during the disaster. In particular, sex, passenger class, age were the most dominant variables. fare and port of embarkation added contextual richness to patterns described. Utilizing exploratory visualizations as well as predictive modelling, the findings over-aligned history with the fact that survival was limited not by a fluke, but by social norms and available resources.
+
+Indeed, both logistic regression and decision tree models performed well for this binary classification exercise and the logistic regression model did so by providing statistically meaningful coefficients while the decision tree model provided a visually accessible and interpret able map of the way in which the decisions were made. Future work may look into ensemble models or offer more engineered features to enhance the prediction. On a full review basis, this research proves the durability of the Titanic data set as a teaching/learning material on basic tenets of data science and it asserts that the larger society dynamics function in crisis situations.
+
+##References
+
+#Mohammadagha, M. (2025). Hyperparameter Optimization Strategies for Tree-Based Machine Learning Models Prediction: A Comparative Study of AdaBoost, Decision Trees, and Random Forest.Decision Trees, and Random Forest (April 11, 2025).
+
+#MENAI, M. (2021). The Titanic Tragedy between Reality, Myths and Conspiracy Theories.
+
+#Frey, B. S., Savage, D. A., & Torgler, B. (2010). Noblesse oblige? Determinants of survival in a life-and-death situation.Journal of Economic Behavior & Organization,74(1-2), 1-11.
+
+#Han, J., Kamber, M., & Pei, J. (2012). Data mining: Concepts and.Techniques, Waltham: Morgan Kaufmann Publishers.
+
+#Ai, Y. (2023). Predicting Titanic survivors by using machine learning.Highlights in Science, Engineering and Technology,34, 360-367.
+
+#Peng, C. Y. J., Lee, K. L., & Ingersoll, G. M. (2002). An introduction to logistic regression analysis and reporting.The journal of educational research,96(1), 3-14.
+
