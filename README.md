@@ -5,9 +5,8 @@ Welcome to my Data Science & Analytics portfolio! I'm a passionate and versatile
 Biostatistics, Bsc
 
 ## About Me
-
-- **Background**: Data Science & Analytics | Biostatistics | Research
-- **Tools & Languages**: R, Python, SAS, Excel, Power BI, SPSS, Stata, Git
+- **Background**: Data Science & Analytics  Biostatistics  Research
+- **Tools & Languages**: R, Python, SAS, Excel, Power BI, SPSS, Stata, SQL, Netlogo
 - **Location**: Nairobi, Kenya
 - **Email**: onywogo2017@gmail.com
 
@@ -39,7 +38,7 @@ Here are some of the projects you'll find in this portfolio:
 Feel free to connect with me for collaborations, freelance projects, or data-driven discussions:
 
 - Email: [onywogo2017@gmail.com](mailto:onywogo2017@gmail.com)  
-- LinkedIn: [www.linkedin.com/in/felix-onywogo-235676257](www.linkedin.com/in/felix-onywogo-235676257)
+- LinkedIn: [www.linkedin.com/in/felix-onywogo-235676257/](www.linkedin.com/in/felix-onywogo-235676257)
 - Nairobi, Kenya  
 ---
 
