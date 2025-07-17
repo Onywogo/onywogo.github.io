@@ -5,7 +5,7 @@ Welcome to my Data Science & Analytics portfolio! I'm a passionate and versatile
 Biostatistics, Bsc
 
 ## About Me
-- **Background**: Data Science & Analytics  Biostatistics  Research
+- **Background**: Data Science & Analytics,  Biostatistics,  Research
 - **Tools & Languages**: R, Python, SAS, Excel, Power BI, SPSS, Stata, SQL, Netlogo
 - **Location**: Nairobi, Kenya
 - **Email**: onywogo2017@gmail.com
