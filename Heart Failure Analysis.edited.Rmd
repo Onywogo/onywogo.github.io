@@ -1,0 +1,414 @@
+---
+title: "Heart Failure Analysis"
+author: "Name"
+date: "2025-04-28"
+output:
+  word_document: default
+  html_document: default
+---
+
+**Loading the Data**
+```{r}
+# Load required libraries
+library(readr)
+
+# Load the dataset (update the file path if needed)
+data <- read.csv("heart_failure_data.csv")
+
+# Check the structure of the dataset
+str(data)
+
+```
+**Splitting the Data into Training and Testing Sets**
+```{r}
+# Load necessary library for data splitting
+library(caret)
+
+# Set seed for reproducibility
+set.seed(123)
+
+# Split the data (70% training, 30% testing)
+trainIndex <- createDataPartition(data$DEATH_EVENT, p = 0.7, list = FALSE)
+train_data <- data[trainIndex, ]
+test_data <- data[-trainIndex, ]
+
+# Verify the split
+table(train_data$DEATH_EVENT)
+table(test_data$DEATH_EVENT)
+
+```
+**3. Logistic Regression Models**
+
+*3.1 Standard Logistic Regression**
+```{r}
+# Fit a basic logistic regression model
+logit_model <- glm(DEATH_EVENT ~ age + anaemia + creatinine_phosphokinase + 
+                   diabetes + ejection_fraction + high_blood_pressure + 
+                   platelets + serum_creatinine + serum_sodium + sex + smoking + time, 
+                   data = train_data, family = binomial)
+
+# Summary of the logistic regression model
+summary(logit_model)
+
+```
+*3.2 Lasso Logistic Regression*
+```{r}
+# Load the glmnet package for Lasso and Ridge regression
+library(glmnet)
+
+# Prepare the data for glmnet (predictors matrix and response vector)
+X_train <- as.matrix(train_data[, -which(names(train_data) == "DEATH_EVENT")])
+y_train <- train_data$DEATH_EVENT
+
+# Fit the Lasso model (alpha = 1)
+lasso_model <- cv.glmnet(X_train, y_train, alpha = 1, family = "binomial")
+
+# Summary of the Lasso model
+lasso_model$lambda.min  # Best lambda
+
+```
+*3.3 Ridge Logistic Regression*
+```{r}
+# Fit the Ridge model (alpha = 0)
+ridge_model <- cv.glmnet(X_train, y_train, alpha = 0, family = "binomial")
+
+# Summary of the Ridge model
+ridge_model$lambda.min  # Best lambda
+
+```
+*3.4 Elastic Net Logistic Regression*
+```{r}
+# Fit the Elastic Net model (0 < alpha < 1)
+elastic_net_model <- cv.glmnet(X_train, y_train, alpha = 0.5, family = "binomial")
+
+# Summary of the Elastic Net model
+elastic_net_model$lambda.min  # Best lambda
+
+```
+**4. Evaluating the Models**
+
+*4.1 Model Performance Metrics (MSE, AIC, BIC)*
+```{r}
+# Predictions on the test set
+X_test <- as.matrix(test_data[, -which(names(test_data) == "DEATH_EVENT")])
+y_test <- test_data$DEATH_EVENT
+
+# Standard logistic regression
+logit_pred <- predict(logit_model, newdata = test_data, type = "response")
+logit_class <- ifelse(logit_pred > 0.5, 1, 0)
+
+# Compute MSE
+logit_mse <- mean((logit_class - y_test)^2)
+
+# Compute AIC and BIC
+logit_aic <- AIC(logit_model)
+logit_bic <- BIC(logit_model)
+
+# Display results
+cat("Logistic Regression MSE:", logit_mse, "\n")
+cat("Logistic Regression AIC:", logit_aic, "\n")
+cat("Logistic Regression BIC:", logit_bic, "\n")
+
+```
+**5. Model Comparison and Selection**
+```{r}
+# Compare models
+model_comparison <- data.frame(
+  Model = c("Logistic Regression", "Lasso", "Ridge", "Elastic Net"),
+  MSE = c(logit_mse, lasso_model$cvm[which.min(lasso_model$cvm)], 
+          ridge_model$cvm[which.min(ridge_model$cvm)], 
+          elastic_net_model$cvm[which.min(elastic_net_model$cvm)]),
+  AIC = c(logit_aic, NA, NA, NA),  # Add AIC for lasso/ridge/elastic if needed
+  BIC = c(logit_bic, NA, NA, NA)   # Same as AIC for others
+)
+
+print(model_comparison)
+
+```
+```{r}
+# Function to calculate AIC and BIC for cv.glmnet models
+calculate_aic_bic <- function(model, X_test, y_test) {
+  # Get the predicted values
+  pred <- predict(model, newx = X_test, s = "lambda.min", type = "response")
+  
+  # Calculate MSE as an approximation of deviance
+  deviance_value <- mean((pred - y_test)^2)
+  
+  # Get number of non-zero coefficients (used for number of parameters)
+  num_params <- sum(predict(model, s = "lambda.min", type = "coefficients")[,1] != 0)
+  
+  # Number of observations
+  n <- length(y_test)
+  
+  # AIC and BIC formulas
+  aic <- n * log(deviance_value) + 2 * num_params
+  bic <- n * log(deviance_value) + num_params * log(n)
+  
+  return(list(aic = aic, bic = bic))
+}
+
+# Standard Logistic Regression
+logit_pred <- predict(logit_model, newdata = test_data, type = "response")
+logit_class <- ifelse(logit_pred > 0.5, 1, 0)
+
+# Compute MSE for Logistic Regression
+logit_mse <- mean((logit_class - y_test)^2)
+
+# AIC and BIC for Logistic Regression
+logit_aic <- AIC(logit_model)
+logit_bic <- BIC(logit_model)
+
+# Lasso Logistic Regression
+lasso_metrics <- calculate_aic_bic(lasso_model, X_test, y_test)
+lasso_pred <- predict(lasso_model, s = "lambda.min", newx = X_test, type = "response")
+lasso_mse <- mean((lasso_pred - y_test)^2)
+
+# Ridge Logistic Regression
+ridge_metrics <- calculate_aic_bic(ridge_model, X_test, y_test)
+ridge_pred <- predict(ridge_model, s = "lambda.min", newx = X_test, type = "response")
+ridge_mse <- mean((ridge_pred - y_test)^2)
+
+# Elastic Net Logistic Regression
+elastic_net_metrics <- calculate_aic_bic(elastic_net_model, X_test, y_test)
+elastic_net_pred <- predict(elastic_net_model, s = "lambda.min", newx = X_test, type = "response")
+elastic_net_mse <- mean((elastic_net_pred - y_test)^2)
+
+# Compare models
+model_comparison <- data.frame(
+  Model = c("Logistic Regression", "Lasso", "Ridge", "Elastic Net"),
+  MSE = c(logit_mse, lasso_mse, ridge_mse, elastic_net_mse),
+  AIC = c(logit_aic, lasso_metrics$aic, ridge_metrics$aic, elastic_net_metrics$aic),
+  BIC = c(logit_bic, lasso_metrics$bic, ridge_metrics$bic, elastic_net_metrics$bic)
+)
+
+# Print the comparison of models
+print(model_comparison)
+```
+
+**Visualisations**
+
+*magnitude and direction of predictors*
+```{r}
+library(ggplot2)
+library(broom)
+
+# Extract coefficients and confidence intervals
+coef_data <- tidy(logit_model, conf.int = TRUE)
+
+# Plot
+ggplot(coef_data[-1, ], aes(x = estimate, y = term)) +  # Exclude intercept
+  geom_vline(xintercept = 0, linetype = "dashed", color = "red") +
+  geom_pointrange(aes(xmin = conf.low, xmax = conf.high)) +
+  labs(title = "Logistic Regression Coefficients", 
+       x = "Estimate (log-odds)", y = "Predictor") +
+  theme_minimal()
+```
+*ROC Curve*
+```{r}
+library(pROC)
+roc_obj <- roc(y_test, logit_pred)
+plot(roc_obj, main = "ROC Curve (Standard Logistic Regression)", print.auc = TRUE)
+```
+*Lasso/Ridge/Elastic Net Models*
+```{r}
+library(glmnet)
+par(mfrow = c(1, 3))  # Arrange plots side-by-side
+
+# Lasso
+plot(lasso_model$glmnet.fit, xvar = "lambda", main = "Lasso Coefficients")
+abline(v = log(lasso_model$lambda.min), col = "red", lty = 2)
+
+# Ridge
+plot(ridge_model$glmnet.fit, xvar = "lambda", main = "Ridge Coefficients")
+abline(v = log(ridge_model$lambda.min), col = "red", lty = 2)
+
+# Elastic Net
+plot(elastic_net_model$glmnet.fit, xvar = "lambda", main = "Elastic Net Coefficients")
+abline(v = log(elastic_net_model$lambda.min), col = "red", lty = 2)
+```
+*Cross-Validation Error*
+```{r}
+plot(lasso_model, main = "Lasso: Cross-Validated MSE")
+plot(ridge_model, main = "Ridge: Cross-Validated MSE")
+plot(elastic_net_model, main = "Elastic Net: Cross-Validated MSE")
+```
+
+```{r}
+library(tidyr)
+model_comparison_long <- pivot_longer(model_comparison, cols = -Model, names_to = "Metric")
+
+ggplot(model_comparison_long, aes(x = Model, y = value, fill = Metric)) +
+  geom_bar(stat = "identity", position = "dodge") +
+  labs(title = "Model Comparison by Metric", y = "Value") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+```
+
+```{r}
+library(caret)
+lasso_class <- ifelse(lasso_pred > 0.5, 1, 0)
+cm <- confusionMatrix(factor(lasso_class), factor(y_test), positive = "1")
+
+fourfoldplot(cm$table, color = c("red", "green"), 
+             main = "Confusion Matrix (Lasso Model)")
+```
+**1. Standard Logistic Regression**
+
+*Histogram of Predicted Probabilities*
+```{r}
+# Predicted probabilities for the test set
+logit_pred <- predict(logit_model, newdata = test_data, type = "response")
+
+# Histogram with fitted distribution
+ggplot(test_data, aes(x = logit_pred)) +
+  geom_histogram(aes(y = ..density..), bins = 30, fill = "skyblue", alpha = 0.7) +
+  geom_density(color = "darkblue", linewidth = 1) +
+  labs(
+    title = "Standard Logistic Regression: Predicted Probabilities",
+    x = "Predicted Probability of Death",
+    y = "Density"
+  ) +
+  theme_minimal()
+```
+*Fitted vs. Actual Distribution*
+```{r}
+# Combine actual and predicted values
+plot_data <- data.frame(
+  Death_Event = factor(test_data$DEATH_EVENT, labels = c("Survived", "Died")),
+  Predicted_Prob = logit_pred
+)
+
+# Overlay predicted distributions by actual outcome
+ggplot(plot_data, aes(x = Predicted_Prob, fill = Death_Event)) +
+  geom_density(alpha = 0.5) +
+  labs(
+    title = "Fitted vs. Actual Death Events (Logistic Regression)",
+    x = "Predicted Probability of Death",
+    y = "Density",
+    fill = "Actual Outcome"
+  ) +
+  theme_minimal()
+```
+
+**2. Lasso Logistic Regression**
+
+*Histogram of Predicted Probabilities*
+```{r}
+lasso_pred <- predict(lasso_model, newx = X_test, s = "lambda.min", type = "response")
+
+ggplot(test_data, aes(x = lasso_pred)) +
+  geom_histogram(aes(y = ..density..), bins = 30, fill = "lightgreen", alpha = 0.7) +
+  geom_density(color = "darkgreen", linewidth = 1) +
+  labs(
+    title = "Lasso Logistic Regression: Predicted Probabilities",
+    x = "Predicted Probability of Death",
+    y = "Density"
+  ) +
+  theme_minimal()
+```
+*Fitted vs. Actual Distribution*
+```{r}
+plot_data_lasso <- data.frame(
+  Death_Event = factor(y_test, labels = c("Survived", "Died")),
+  Predicted_Prob = lasso_pred[,1]
+)
+
+ggplot(plot_data_lasso, aes(x = Predicted_Prob, fill = Death_Event)) +
+  geom_density(alpha = 0.5) +
+  labs(
+    title = "Fitted vs. Actual Death Events (Lasso)",
+    x = "Predicted Probability of Death",
+    y = "Density",
+    fill = "Actual Outcome"
+  ) +
+  theme_minimal()
+```
+
+**3. Ridge Logistic Regression**
+
+*Histogram of Predicted Probabilities*
+```{r}
+ridge_pred <- predict(ridge_model, newx = X_test, s = "lambda.min", type = "response")
+
+ggplot(test_data, aes(x = ridge_pred)) +
+  geom_histogram(aes(y = ..density..), bins = 30, fill = "salmon", alpha = 0.7) +
+  geom_density(color = "darkred", linewidth = 1) +
+  labs(
+    title = "Ridge Logistic Regression: Predicted Probabilities",
+    x = "Predicted Probability of Death",
+    y = "Density"
+  ) +
+  theme_minimal()
+```
+*Fitted vs. Actual Distribution*
+```{r}
+plot_data_ridge <- data.frame(
+  Death_Event = factor(y_test, labels = c("Survived", "Died")),
+  Predicted_Prob = ridge_pred[,1]
+)
+
+ggplot(plot_data_ridge, aes(x = Predicted_Prob, fill = Death_Event)) +
+  geom_density(alpha = 0.5) +
+  labs(
+    title = "Fitted vs. Actual Death Events (Ridge)",
+    x = "Predicted Probability of Death",
+    y = "Density",
+    fill = "Actual Outcome"
+  ) +
+  theme_minimal()
+```
+**4. Elastic Net Logistic Regression**
+
+*Histogram of Predicted Probabilities*
+```{r}
+elastic_net_pred <- predict(elastic_net_model, newx = X_test, s = "lambda.min", type = "response")
+
+ggplot(test_data, aes(x = elastic_net_pred)) +
+  geom_histogram(aes(y = ..density..), bins = 30, fill = "gold", alpha = 0.7) +
+  geom_density(color = "darkorange", linewidth = 1) +
+  labs(
+    title = "Elastic Net Logistic Regression: Predicted Probabilities",
+    x = "Predicted Probability of Death",
+    y = "Density"
+  ) +
+  theme_minimal()
+```
+*Fitted vs. Actual Distribution*
+```{r}
+plot_data_elastic <- data.frame(
+  Death_Event = factor(y_test, labels = c("Survived", "Died")),
+  Predicted_Prob = elastic_net_pred[,1]
+)
+
+ggplot(plot_data_elastic, aes(x = Predicted_Prob, fill = Death_Event)) +
+  geom_density(alpha = 0.5) +
+  labs(
+    title = "Fitted vs. Actual Death Events (Elastic Net)",
+    x = "Predicted Probability of Death",
+    y = "Density",
+    fill = "Actual Outcome"
+  ) +
+  theme_minimal()
+```
+**5. Combined Visualization**
+```{r}
+# Combine predictions
+all_preds <- data.frame(
+  Model = rep(c("Logistic", "Lasso", "Ridge", "Elastic Net"), each = nrow(test_data)),
+  Predicted_Prob = c(logit_pred, lasso_pred[,1], ridge_pred[,1], elastic_net_pred[,1]),
+  Death_Event = factor(rep(y_test, 4), labels = c("Survived", "Died"))
+)
+
+# Plot densities by model and actual outcome
+ggplot(all_preds, aes(x = Predicted_Prob, fill = Death_Event)) +
+  geom_density(alpha = 0.5) +
+  facet_wrap(~Model, ncol = 2) +
+  labs(
+    title = "Comparison of Predicted Probabilities Across Models",
+    x = "Predicted Probability of Death",
+    y = "Density",
+    fill = "Actual Outcome"
+  ) +
+  theme_minimal()
+```
+
