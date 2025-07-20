@@ -1,0 +1,159 @@
+---
+title: "Cryptocurrency Analysis"
+author: "Name"
+date: "2025-05-10"
+output:
+  word_document: default
+  html_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+**Introduction**
+
+
+**Research Question**
+
+
+**Data Preprocessing and Wrangling**
+```{r}
+# Load necessary libraries
+library(readxl)  # For reading Excel files
+library(dplyr)
+library(tidyr)
+library(lubridate)
+library(ggplot2)
+
+
+# Load the sheets into separate data frames
+cosmos <- read_excel("cryptocurrency_data.xlsx", sheet = "coin_Cosmos")
+cardano <- read_excel("cryptocurrency_data.xlsx", sheet = "coin_cardano")
+bitcoin <- read_excel("cryptocurrency_data.xlsx", sheet = "coin_Bitcoin")
+binance <- read_excel("cryptocurrency_data.xlsx", sheet = "coin_Binance")
+aave <- read_excel("cryptocurrency_data.xlsx", sheet = "coin_Aave")
+chainlink <- read_excel("cryptocurrency_data.xlsx", sheet = "coin_Chainlink")
+
+# Combine the sheets into one dataset with an additional 'Coin' column to specify the cryptocurrency
+crypto_data <- bind_rows(
+  mutate(cosmos, Coin = "Cosmos"),
+  mutate(cardano, Coin = "Cardano"),
+  mutate(bitcoin, Coin = "Bitcoin"),
+  mutate(binance, Coin = "Binance"),
+  mutate(aave, Coin = "Aave"),
+  mutate(chainlink, Coin = "Chainlink")
+)
+
+# Convert the 'Date' column to a Date type
+crypto_data$Date <- as.Date(crypto_data$Date, format="%Y-%m-%d")
+
+# Check for missing values and handle them (e.g., removing rows with NA values)
+crypto_data <- crypto_data %>%
+  filter(!is.na(High), !is.na(Low), !is.na(Open), !is.na(Close), !is.na(Volume), !is.na(Marketcap))
+
+# Summarize the data to ensure everything looks correct
+summary(crypto_data)
+
+```
+**Exploratory Data Analysis (EDA)**
+
+**Price Trends for Different Cryptocurrencies:**
+```{r}
+ggplot(crypto_data, aes(x = Date, y = Close, color = Coin)) +
+  geom_line() +
+  labs(title = "Closing Price Over Time for Different Cryptocurrencies",
+       x = "Date",
+       y = "Closing Price (USD)")
+
+```
+
+**Price Volatility:**
+```{r}
+crypto_data <- crypto_data %>%
+  mutate(Price_Volatility = High - Low)
+
+ggplot(crypto_data, aes(x = Date, y = Price_Volatility, color = Coin)) +
+  geom_line() +
+  labs(title = "Price Volatility Over Time",
+       x = "Date",
+       y = "Price Volatility (USD)")
+
+```
+**Volume Traded by Cryptocurrency:**
+```{r}
+ggplot(crypto_data, aes(x = Date, y = Volume, fill = Coin)) +
+  geom_bar(stat = "identity", position = "stack") +
+  labs(title = "Volume Traded Over Time for Different Cryptocurrencies",
+       x = "Date",
+       y = "Volume Traded")
+
+```
+**Market Cap Comparison:**
+```{r}
+ggplot(crypto_data, aes(x = Date, y = Marketcap, color = Coin)) +
+  geom_line() +
+  labs(title = "Market Cap Over Time for Different Cryptocurrencies",
+       x = "Date",
+       y = "Market Cap (USD)")
+
+```
+**Non-Visual EDA (Descriptive Statistics)**
+```{r}
+# Summary statistics for the entire dataset
+summary_stats <- crypto_data %>%
+  group_by(Coin) %>%
+  summarise(
+    avg_high = mean(High, na.rm = TRUE),
+    avg_low = mean(Low, na.rm = TRUE),
+    avg_open = mean(Open, na.rm = TRUE),
+    avg_close = mean(Close, na.rm = TRUE),
+    avg_volume = mean(Volume, na.rm = TRUE),
+    avg_marketcap = mean(Marketcap, na.rm = TRUE),
+    num_records = n()
+  )
+
+# Print summary statistics
+print(summary_stats)
+
+```
+
+**Correlation Between Variables:**
+```{r}
+correlation_matrix <- crypto_data %>%
+  select(High, Low, Open, Close, Volume, Marketcap) %>%
+  cor()
+
+# Display the correlation matrix
+print(correlation_matrix)
+
+```
+**Time Series Analysis:**
+```{r}
+library(forecast)
+
+# Subset the data for Bitcoin (as an example)
+bitcoin_data <- filter(crypto_data, Coin == "Bitcoin")
+
+# Convert 'Date' to a time series object
+bitcoin_ts <- ts(bitcoin_data$Close, frequency = 365, start = c(2017, 1))
+
+# Fit an ARIMA model for price forecasting
+model <- auto.arima(bitcoin_ts)
+forecasted_prices <- forecast(model, h = 30)  # Forecast for the next 30 days
+
+# Plot the forecast
+plot(forecasted_prices)
+
+```
+```{r}
+library(plotly)
+
+# Interactive line plot for Closing Price
+plot_ly(crypto_data, x = ~Date, y = ~Close, color = ~Coin, type = "scatter", mode = "lines") %>%
+  layout(title = "Closing Price Over Time for Different Cryptocurrencies",
+         xaxis = list(title = "Date"),
+         yaxis = list(title = "Closing Price (USD)"))
+
+```
+
