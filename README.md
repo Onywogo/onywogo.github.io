@@ -38,7 +38,7 @@ Here are some of the projects you'll find in this portfolio:
 Feel free to connect with me for collaborations, freelance projects, or data-driven discussions:
 
 - Email: [onywogo2017@gmail.com](mailto:onywogo2017@gmail.com)  
-- LinkedIn: [Felix Onywogo](https://www.linkedin.com/in/felix-onywogo-235676257/)
+- Tel:+254758012040 
 - Nairobi, Kenya  
 ---
 
